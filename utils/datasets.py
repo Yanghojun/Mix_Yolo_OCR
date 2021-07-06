@@ -293,7 +293,6 @@ class LoadStreams:  # multiple IP or RTSP cameras
             print(f'{i + 1}/{n}: {s}... ', end='')
             if 'youtube.com/' in s or 'youtu.be/' in s:  # if source is YouTube video
                 check_requirements(('pafy', 'youtube_dl'))
-                import pafy
                 s = pafy.new(s).getbest(preftype="mp4").url  # YouTube URL
             s = eval(s) if s.isnumeric() else s  # i.e. s = '0' local webcam
 
@@ -307,7 +306,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
             self.fps[i] = 30.0  # 30 FPS fallback
             self.frames[i] = float('inf')  # infinite stream fallback
-            
+
             pipe.start(config)
             tmp = pipe.wait_for_frames()
             self.imgs[i] = np.array(tmp.get_color_frame().get_data())
