@@ -304,8 +304,10 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
             w = 640
             h = 480
+
             self.fps[i] = 30.0  # 30 FPS fallback
             self.frames[i] = float('inf')  # infinite stream fallback
+            
             pipe.start(config)
             tmp = pipe.wait_for_frames()
             self.imgs[i] = np.array(tmp.get_color_frame().get_data())
