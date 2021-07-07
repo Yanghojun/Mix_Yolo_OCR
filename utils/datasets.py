@@ -297,18 +297,6 @@ class LoadStreams:  # multiple IP or RTSP cameras
             if 'youtube.com/' in s or 'youtu.be/' in s:  # if source is YouTube video
                 check_requirements(('pafy', 'youtube_dl'))
                 s = pafy.new(s).getbest(preftype="mp4").url  # YouTube URL
-<<<<<<< HEAD
-            s = 2  # i.e. s = '0' local webcam
-            cap = cv2.VideoCapture(2)
-            assert cap.isOpened(), f'Failed to open {s}'
-            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            self.fps[i] = max(cap.get(cv2.CAP_PROP_FPS) % 100, 0) or 30.0  # 30 FPS fallback
-            self.frames[i] = max(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), 0) or float('inf')  # infinite stream fallback
-
-            _, self.imgs[i] = cap.read()  # guarantee first frame
-            self.threads[i] = Thread(target=self.update, args=([i, cap]), daemon=True)
-=======
             s = eval(s) if s.isnumeric() else s  # i.e. s = '0' local webcam
 
             config = rs.config()
@@ -328,7 +316,6 @@ class LoadStreams:  # multiple IP or RTSP cameras
             self.depth = tmp.get_depth_frame()
 
             self.threads[i] = Thread(target=self.update, args=([i, pipe]), daemon=True)
->>>>>>> bda43f8ef2777b7ee47ba3c5ae742339d3c23465
             print(f" success ({self.frames[i]} frames {w}x{h} at {self.fps[i]:.2f} FPS)")
             self.threads[i].start()
         print('')  # newline
