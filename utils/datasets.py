@@ -1,5 +1,5 @@
 # YOLOv5 dataset utils and dataloaders
-
+import pyrealsense2 as rs
 import glob
 import hashlib
 import json
@@ -293,8 +293,8 @@ class LoadStreams:  # multiple IP or RTSP cameras
             print(f'{i + 1}/{n}: {s}... ', end='')
             if 'youtube.com/' in s or 'youtu.be/' in s:  # if source is YouTube video
                 check_requirements(('pafy', 'youtube_dl'))
-                import pafy
                 s = pafy.new(s).getbest(preftype="mp4").url  # YouTube URL
+<<<<<<< HEAD
             s = 2  # i.e. s = '0' local webcam
             cap = cv2.VideoCapture(2)
             assert cap.isOpened(), f'Failed to open {s}'
@@ -305,6 +305,27 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
             _, self.imgs[i] = cap.read()  # guarantee first frame
             self.threads[i] = Thread(target=self.update, args=([i, cap]), daemon=True)
+=======
+            s = eval(s) if s.isnumeric() else s  # i.e. s = '0' local webcam
+
+            config = rs.config()
+            config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+            config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+            pipe = rs.pipeline()
+
+            w = 640
+            h = 480
+
+            self.fps[i] = 30.0  # 30 FPS fallback
+            self.frames[i] = float('inf')  # infinite stream fallback
+
+            pipe.start(config)
+            tmp = pipe.wait_for_frames()
+            self.imgs[i] = np.array(tmp.get_color_frame().get_data())
+            self.depth = tmp.get_depth_frame()
+
+            self.threads[i] = Thread(target=self.update, args=([i, pipe]), daemon=True)
+>>>>>>> bda43f8ef2777b7ee47ba3c5ae742339d3c23465
             print(f" success ({self.frames[i]} frames {w}x{h} at {self.fps[i]:.2f} FPS)")
             self.threads[i].start()
         print('')  # newline
@@ -315,16 +336,18 @@ class LoadStreams:  # multiple IP or RTSP cameras
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
-    def update(self, i, cap):
+    def update(self, i, pipe):
         # Read stream `i` frames in daemon thread
         n, f, read = 0, self.frames[i], 1  # frame number, frame array, inference every 'read' frame
-        while cap.isOpened() and n < f:
+        while True and n < f:
             n += 1
             # _, self.imgs[index] = cap.read()
-            cap.grab()
+            frames = pipe.wait_for_frames()
             if n % read == 0:
-                success, im = cap.retrieve()
-                self.imgs[i] = im if success else self.imgs[i] * 0
+                depth = frames.get_depth_frame()
+                frame = np.array(frames.get_color_frame().get_data())  
+                self.imgs[i] = frame
+                self.depth = depth
             time.sleep(1 / self.fps[i])  # wait time
 
     def __iter__(self):
@@ -348,7 +371,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         img = img[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW
         img = np.ascontiguousarray(img)
 
-        return self.sources, img, img0, None
+        return self.sources, img, img0, self.depth
 
     def __len__(self):
         return len(self.sources)  # 1E12 frames = 32 streams at 30 FPS for 30 years
