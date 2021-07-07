@@ -12,7 +12,9 @@ from itertools import repeat
 from multiprocessing.pool import ThreadPool, Pool
 from pathlib import Path
 from threading import Thread
-
+import gtts
+from playsound import playsound
+import pyttsx3
 import cv2
 import numpy as np
 import torch
@@ -275,6 +277,7 @@ class LoadWebcam:  # for inference
 
 class LoadStreams:  # multiple IP or RTSP cameras
     def __init__(self, sources='streams.txt', img_size=640, stride=32):
+        
         self.mode = 'stream'
         self.img_size = img_size
         self.stride = stride
@@ -322,7 +325,10 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.rect = np.unique(s, axis=0).shape[0] == 1  # rect inference if all shapes equal
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
-
+    def talk(self,_d,_o,engine,depth):
+        engine.say(_d+'시'+_o+depth[0:1]+'미터')
+        # play the speech
+        engine.runAndWait()
     def update(self, i, pipe):
         # Read stream `i` frames in daemon thread
         n, f, read = 0, self.frames[i], 1  # frame number, frame array, inference every 'read' frame

@@ -3,7 +3,9 @@
 Usage:
     $ python path/to/detect.py --source path/to/img.jpg --weights yolov5s.pt --img 640
 """
-
+import gtts
+from playsound import playsound
+import pyttsx3
 import argparse
 import sys
 import time
@@ -13,6 +15,7 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 
+engine = pyttsx3.init()
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
 
@@ -23,6 +26,10 @@ from utils.general import check_img_size, check_requirements, check_imshow, colo
 from utils.plots import colors, plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
+direction,thing='',''
+count = 0
+num = 0
+lst =['0' for _ in range(30000)]
 
 @torch.no_grad()
 def run(weights='yolov5s.pt',  # model.pt path(s)
@@ -49,6 +56,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         ):
+   
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
@@ -61,7 +69,6 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     set_logging()
     device = select_device(device)
     half &= device.type != 'cpu'  # half precision only supported on CUDA
-
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
@@ -109,14 +116,16 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
-
+        global direction,thing
+        global count
+        global num
+        global lst
         # Process detections
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], f'{i}: ', im0s[i].copy(), dataset.count
             else:
                 p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
-
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
@@ -141,15 +150,48 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     if save_img or save_crop or view_img:  # Add bbox to image
+                        if(num>30000):
+                            num=0
+                            lst =['0' for _ in range(30000)]
                         c = int(cls)  # integer class
+                        _thing=names[c]
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
-                        plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
+                        _direction,_depth=plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
+                        print('thing')
+                        print(_thing)
+                        print(thing)
+
+                        print('direction')
+                        print(_direction)
+                        print(direction)
+                        print('count')
+                        print(count)
+                        check = True
+                        for q in range(29997):
+                            if(lst[q]==_thing and lst[q+1]==_direction):
+                                lst[q+2]=str(int(lst[q+2])+1)
+                                check=False
+                                print(lst[q+2])
+                                break
+                        if(check):
+                            lst[num]=_thing
+                            lst[num+1]=_direction
+                            lst[num+2]=str(1)
+                            num=num+3
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                        for w in range(29997):
+                            if(lst[w+2]=='10'):
+                                lst[w+2]=0
+                                print('please')
+                                # convert this text to speech
+                                dataset.talk(lst[w+1],lst[w],engine,_depth)
+                                break
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
-
+           
+                    
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
@@ -160,13 +202,14 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
                 else:  # 'video' or 'stream'
-                    if vid_path[i] != save_path:  # new video
+                    if vid_path[i] != save_path:  # new videoAB
                         vid_path[i] = save_path
                         if isinstance(vid_writer[i], cv2.VideoWriter):
                             vid_writer[i].release()  # release previous video writer
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                             save_path += '.mp4'
+                            
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer[i].write(im0)
 
@@ -216,5 +259,6 @@ def main(opt):
 
 
 if __name__ == "__main__":
+    
     opt = parse_opt()
     main(opt)

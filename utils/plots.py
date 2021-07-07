@@ -68,6 +68,7 @@ def butter_lowpass_filtfilt(data, cutoff=1500, fs=50000, order=5):
     return filtfilt(b, a, data)  # forward-backward filter
 
 
+
 def plot_one_box(x, im, color=(128, 128, 128), label=None, line_thickness=3, depth_frame=None):
     # Plots one bounding box on image 'im' using OpenCV
     assert im.data.contiguous, 'Image not contiguous. Apply np.ascontiguousarray(im) to plot_on_box() input image.'
@@ -82,13 +83,17 @@ def plot_one_box(x, im, color=(128, 128, 128), label=None, line_thickness=3, dep
             avg_x = (x1+x2)//2
             avg_y = (y1+y2)//2
             dist = depth_frame.get_distance(avg_x, avg_y)
+            _direction = cal_distance(avg_x,avg_y)
+            print(cal_distance(avg_x,avg_y))
         tf = max(tl - 1, 1)  # font thickness
         t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
         c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
         cv2.rectangle(im, c1, c2, color, -1, cv2.LINE_AA)  # filled
         cv2.putText(im, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
+
         if dist:
             cv2.putText(im, str(dist), (avg_x, avg_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 1)
+        return _direction,str(dist)
 
 
 def plot_one_box_PIL(box, im, color=(128, 128, 128), label=None, line_thickness=None):
@@ -124,6 +129,29 @@ def plot_wh_methods():  # from utils.plots import *; plot_wh_methods()
     plt.legend()
     fig.savefig('comparison.png', dpi=200)
 
+def cal_distance(x,y):
+    text =""
+    # x좌표 값이 300보다 작을 때
+    if x<320 :
+        if y<-0.46*(x-320):
+            text="9시"
+        elif y<-1.19*(x-320):
+            text="10시"
+        elif y<-3.73*(x-320):
+            text="11시" 
+        else :
+            text="12시"
+    # x좌표 값이 300보다 클 때
+    if x>320 :
+        if y>3.73*(x-320):
+            text="12시"
+        elif y>1.19*(x-320):
+            text="1시"
+        elif y>0.46*(x-320):
+            text="2시" 
+        else :
+            text="3시"
+    return text
 
 def output_to_target(output):
     # Convert model output to target format [batch_id, class_id, x, y, w, h, conf]
