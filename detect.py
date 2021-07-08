@@ -113,6 +113,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
         t2 = time_synchronized()
 
+        
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
@@ -132,6 +133,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
+            FPS ="FPS : %0.1f"%int(1/(t2-t1))
+            cv2.putText(im0, FPS, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0,(0, 0, 255), 1,cv2.LINE_AA)
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -144,7 +147,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        xywh = (xyxy2xywh(torch.tensor(xyxyq).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
@@ -189,7 +192,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                                 break
 
             # Print time (inference + NMS)
-            print(f'{s}Done. ({t2 - t1:.3f}s)')
+            my_fps = (int)(1/(t2-t1))
+            print(f'{s}Done. ({my_fps}FPS)')
            
                     
             # Stream results
@@ -220,8 +224,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
 
     if update:
         strip_optimizer(weights)  # update model (to fix SourceChangeWarning)
-
-    print(f'Done. ({time.time() - t0:.3f}s)')
+    my_fps = (int) (1/(time.time()-t0))
+    print(f'Done. ({my_fps}s)')
 
 
 def parse_opt():

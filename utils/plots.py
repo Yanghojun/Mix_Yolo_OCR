@@ -76,13 +76,14 @@ def plot_one_box(x, im, color=(128, 128, 128), label=None, line_thickness=3, dep
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
     cv2.rectangle(im, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
     dist = None
+
     if label:
         if depth_frame:
             x1, y1 = c1
             x2, y2 = c2
             avg_x = (x1+x2)//2
             avg_y = (y1+y2)//2
-            dist = depth_frame.get_distance(avg_x, avg_y)
+            dist = str(depth_frame.get_distance(avg_x, avg_y))[0:3]+'m'
             _direction = cal_distance(avg_x,avg_y)
             print(cal_distance(avg_x,avg_y))
         tf = max(tl - 1, 1)  # font thickness
@@ -96,6 +97,7 @@ def plot_one_box(x, im, color=(128, 128, 128), label=None, line_thickness=3, dep
 
         if dist:
             cv2.putText(im, str(dist), (avg_x, avg_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 1)
+            
         return _direction,str(dist)
 
 
@@ -137,23 +139,23 @@ def cal_distance(x,y):
     # x좌표 값이 300보다 작을 때
     if x<320 :
         if y<-0.46*(x-320):
-            text="9시"
+            text="9"
         elif y<-1.19*(x-320):
-            text="10시"
+            text="10"
         elif y<-3.73*(x-320):
-            text="11시" 
+            text="11" 
         else :
-            text="12시"
+            text="12"
     # x좌표 값이 300보다 클 때
     if x>320 :
         if y>3.73*(x-320):
-            text="12시"
+            text="12"
         elif y>1.19*(x-320):
-            text="1시"
+            text="1"
         elif y>0.46*(x-320):
-            text="2시" 
+            text="2" 
         else :
-            text="3시"
+            text="3"
     return text
 
 def output_to_target(output):

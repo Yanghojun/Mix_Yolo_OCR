@@ -322,15 +322,15 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
         # check for common shapes
         s = np.stack([letterbox(x, self.img_size, stride=self.stride)[0].shape for x in self.imgs], 0)  # shapes
-        self.rect = np.unique(s, axis=0).shape[0] == 1  # rect inference if all shapes equal
+        self.rect = np.unique(s, axis=0).shape[0] == 1  # rect inference if all shapes equala
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
     def talk(self,_d,_o,engine,depth):
-        engine.say(_d+'시'+_o+depth[0:1]+'미터')
+        engine.say(_d+_o+depth[0:1])
         # play the speech
         engine.runAndWait()
     def update(self, i, pipe):
-        # Read stream `i` frames in daemon thread
+        # Read stream `i` frames in daemon threads
         n, f, read = 0, self.frames[i], 1  # frame number, frame array, inference every 'read' frame
         while True and n < f:
             n += 1
