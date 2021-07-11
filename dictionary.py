@@ -2,7 +2,7 @@ import argparse
 import json
 import playsound
 
-dic_path = '.\\data\\agri_chem\\data.json'
+dic_path = './data/agri_chem/data.json'
 dic = {}
 with open(dic_path, 'r') as f:
     dic = json.load(f)
