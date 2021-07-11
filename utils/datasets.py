@@ -326,7 +326,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
     def talk(self,_d,_o,engine,depth):
-        engine.say(_d+_o+depth[0:1])
+        engine.say(_d+_o+depth[0:3])
         # play the speech
         engine.runAndWait()
     def update(self, i, pipe):

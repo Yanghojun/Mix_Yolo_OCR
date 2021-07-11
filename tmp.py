@@ -1,3 +1,4 @@
-for i in range(100):
-    print(i)
-    i=i+2
+import gtts
+
+tts = gtts.tts.gTTS(text='Hello', lang='en')
+tts.save("hello.mp3")

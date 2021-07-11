@@ -133,6 +133,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
+            
+            #frame 화면에 출력
             FPS ="FPS : %0.1f"%int(1/(t2-t1))
             cv2.putText(im0, FPS, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0,(0, 0, 255), 1,cv2.LINE_AA)
             if len(det):
@@ -153,6 +155,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     if save_img or save_crop or view_img:  # Add bbox to image
+                        #초기화
                         if(num>30000):
                             num=0
                             lst =['0' for _ in range(30000)]
@@ -160,21 +163,13 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         _thing=names[c]
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                         _direction,_depth=plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
-                        print('thing')
-                        print(_thing)
-                        print(thing)
 
-                        print('direction')
-                        print(_direction)
-                        print(direction)
-                        print('count')
-                        print(count)
+                        #count
                         check = True
                         for q in range(29997):
                             if(lst[q]==_thing and lst[q+1]==_direction):
                                 lst[q+2]=str(int(lst[q+2])+1)
                                 check=False
-                                print(lst[q+2])
                                 break
                         if(check):
                             lst[num]=_thing
