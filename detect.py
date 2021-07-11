@@ -10,17 +10,19 @@ import argparse
 import sys
 import time
 from pathlib import Path
-
+import easyocr
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
+from dictionary import *
+
 
 engine = pyttsx3.init()
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
 
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages
+from utils.datasets import LoadStreams, LoadImages, read_text
 from utils.general import check_img_size, check_requirements, check_imshow, colorstr, non_max_suppression, \
     apply_classifier, scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, save_one_box
 from utils.plots import colors, plot_one_box
@@ -56,7 +58,11 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         ):
-   
+    if device == 'cpu':
+        reader = easyocr.Reader(['ko'], gpu=False)
+    else:
+        reader = easyocr.Reader(['ko'], gpu=True)
+
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
@@ -141,6 +147,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
+
                 # Print results
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
@@ -159,6 +166,16 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         if(num>30000):
                             num=0
                             lst =['0' for _ in range(30000)]
+
+                        results = reader.readtext(im0)
+                        for (bbox, text, prob) in results:
+                            if check_dic(text):
+                                if text == '꽉자바':
+                                    text = '깍자바'
+                                tipe, summary, title = get_summary(text)
+                                read_text(text+tipe+summary+title)
+
+                                
                         c = int(cls)  # integer class
                         _thing=names[c]
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')

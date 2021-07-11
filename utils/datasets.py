@@ -329,6 +329,9 @@ class LoadStreams:  # multiple IP or RTSP cameras
         engine.say(_d+_o+depth[0:3])
         # play the speech
         engine.runAndWait()
+
+    def read_text(text, engine):
+        engine.say()
     def update(self, i, pipe):
         # Read stream `i` frames in daemon threads
         n, f, read = 0, self.frames[i], 1  # frame number, frame array, inference every 'read' frame
