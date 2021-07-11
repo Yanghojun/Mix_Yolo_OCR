@@ -161,7 +161,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                    if save_img or save_crop or view_img:  # Add bbox to image
+                    if save_img or save_crop or view_img:# Add bbox to image
                         #초기화
                         if(num>30000):
                             num=0
@@ -173,7 +173,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                                 if text == '꽉자바':
                                     text = '깍자바'
                                 tipe, summary, title = get_summary(text)
-                                read_text(text+tipe+summary+title)
+                                read_text(text)
 
                                 
                         c = int(cls)  # integer class

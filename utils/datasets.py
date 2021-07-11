@@ -273,7 +273,7 @@ class LoadWebcam:  # for inference
 
     def __len__(self):
         return 0
-
+    
 
 class LoadStreams:  # multiple IP or RTSP cameras
     def __init__(self, sources='streams.txt', img_size=640, stride=32):
@@ -330,8 +330,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         # play the speech
         engine.runAndWait()
 
-    def read_text(text, engine):
-        engine.say()
+
     def update(self, i, pipe):
         # Read stream `i` frames in daemon threads
         n, f, read = 0, self.frames[i], 1  # frame number, frame array, inference every 'read' frame

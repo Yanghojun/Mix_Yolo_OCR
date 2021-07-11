@@ -1,5 +1,6 @@
 import argparse
 import json
+import playsound
 
 dic_path = '.\\data\\agri_chem\\data.json'
 dic = {}
@@ -16,6 +17,10 @@ def open_dic(path):
     global dic
     with open(path, 'r') as f:
         dic = json.load(f)
+
+def read_text(text):
+    audio_path = dic[text]['음성']
+    playsound.playsound(audio_path, True)
 
 def update_file():
     """
