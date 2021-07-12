@@ -90,7 +90,6 @@ def exif_transpose(image):
             image.info["exif"] = exif.tobytes()
     return image
 
-
 def create_dataloader(path, imgsz, batch_size, stride, single_cls=False, hyp=None, augment=False, cache=False, pad=0.0,
                       rect=False, rank=-1, workers=8, image_weights=False, quad=False, prefix=''):
     # Make sure only the first process in DDP process the dataset first, and the following others can use the cache

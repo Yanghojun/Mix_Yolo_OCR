@@ -105,11 +105,21 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
     for path, img, im0s, depth_frame in dataset:
+        results = reader.readtext(img)
+        for (bbox, text, prob) in results:
+            if check_dic(text):
+                if text == '꽉자바':
+                    text = '깍자바'
+                tipe, summary, title = get_summary(text)
+                read_text(text)
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
+
+
+
 
         # Inference
         t1 = time_synchronized()
@@ -167,13 +177,6 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                             num=0
                             lst =['0' for _ in range(30000)]
 
-                        results = reader.readtext(im0)
-                        for (bbox, text, prob) in results:
-                            if check_dic(text):
-                                if text == '꽉자바':
-                                    text = '깍자바'
-                                tipe, summary, title = get_summary(text)
-                                read_text(text)
 
                                 
                         c = int(cls)  # integer class
