@@ -3,6 +3,7 @@
 Usage:
     $ python path/to/detect.py --source path/to/img.jpg --weights yolov5s.pt --img 640
 """
+from logging import error
 import gtts
 from playsound import playsound
 import pyttsx3
@@ -22,7 +23,8 @@ FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
 
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages, read_text
+from dictionary import read_text
+from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, colorstr, non_max_suppression, \
     apply_classifier, scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, save_one_box
 from utils.plots import colors, plot_one_box
@@ -105,13 +107,17 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
     for path, img, im0s, depth_frame in dataset:
-        results = reader.readtext(img)
-        for (bbox, text, prob) in results:
-            if check_dic(text):
-                if text == '꽉자바':
-                    text = '깍자바'
-                tipe, summary, title = get_summary(text)
-                read_text(text)
+        try:
+            results = reader.readtext(img)
+            for (bbox, text, prob) in results:
+                if check_dic(text):
+                    if text == '꽉자바':
+                        text = '깍자바'
+                    tipe, summary, title = get_summary(text)
+                    read_text(text)
+        except UnboundLocalError as e:
+            pass
+            
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
