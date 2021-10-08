@@ -12,7 +12,7 @@ from itertools import repeat
 from multiprocessing.pool import ThreadPool, Pool
 from pathlib import Path
 from threading import Thread
-import gtts
+from gtts import gTTS
 from playsound import playsound
 import pyttsx3
 import cv2
@@ -286,11 +286,11 @@ class LoadStreams:  # multiple IP or RTSP cameras
                 sources = [x.strip() for x in f.read().strip().splitlines() if len(x.strip())]
         else:
             sources = [sources]
-
+        
         n = len(sources)
         self.imgs, self.fps, self.frames, self.threads = [None] * n, [0] * n, [0] * n, [None] * n
         self.sources = [clean_str(x) for x in sources]  # clean source names for later
-        for i, s in enumerate(sources):  # index, source
+        for i, s in enumerate(sources):  # index, source임. source는 걍 --source 0 이라고 하면 '0'이 리스트로 들어있는 것
             # Start thread to read frames from video stream
             print(f'{i + 1}/{n}: {s}... ', end='')
             if 'youtube.com/' in s or 'youtu.be/' in s:  # if source is YouTube video
@@ -314,7 +314,8 @@ class LoadStreams:  # multiple IP or RTSP cameras
             self.imgs[i] = np.array(tmp.get_color_frame().get_data())
             self.depth = tmp.get_depth_frame()
 
-            self.threads[i] = Thread(target=self.update, args=([i, pipe]), daemon=True)
+            self.threads[i] = Thread(target=self.update, args=([i, pipe]), daemon=True)     # 내 생각에 여러 카메라를 돌리는걸 생각해서 쓰레드를 쓰는것 같은데..?
+                                                                                            # 굳이 써야하나
             print(f" success ({self.frames[i]} frames {w}x{h} at {self.fps[i]:.2f} FPS)")
             self.threads[i].start()
         print('')  # newline
@@ -324,10 +325,16 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.rect = np.unique(s, axis=0).shape[0] == 1  # rect inference if all shapes equala
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
-    def talk(self,_d,_o,engine,depth):
-        engine.say(_d+_o+depth[0:3])
+            
+    def talk(self, name, direction, depth):
+        # engine.say(_d+_o+depth[0:3]
+        # tts = gTTS(text = _d + _o + depth[0:3], lang='ko')
+        tts = gTTS(text = name + direction + "시 방향에"+ depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
+        tts.save('./temp_voice.mp3')
+        playsound('./temp_voice.mp3')
+        os.remove('./temp_voice.mp3')
         # play the speech
-        engine.runAndWait()
+        # engine.runAndWait()
 
 
     def update(self, i, pipe):
@@ -348,7 +355,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.count = -1
         return self
 
-    def __next__(self):
+    def __next__(self):     # return of this function are that returned of for loop of detect.pyu
         self.count += 1
         if not all(x.is_alive() for x in self.threads) or cv2.waitKey(1) == ord('q'):  # q to quit
             cv2.destroyAllWindows()

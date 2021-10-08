@@ -53,7 +53,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         augment=False,  # augmented inference
         update=False,  # update all models
         project='runs/detect',  # save results to project/name
-        name='exp',  # save results to project/name
+        name='record',  # save results to project/name
         exist_ok=False,  # existing project/name ok, do not increment
         line_thickness=3,  # bounding box thickness (pixels)
         hide_labels=False,  # hide labels
@@ -68,7 +68,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
-
+    tracking_classes = ['mouse']
     # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
@@ -81,7 +81,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check image size
-    names = model.module.names if hasattr(model, 'module') else model.names  # get class names
+    names = model.module.names if hasattr(model, 'module') else model.names  # get class names    
     if half:
         model.half()  # to FP16
 
@@ -106,8 +106,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
-    for path, img, im0s, depth_frame in dataset:
-        try:
+    for path, img, im0s, depth_frame in dataset:        # 
+        try:        # Try Catch for avoid UnBoundLocalError problem
             results = reader.readtext(img)
             for (bbox, text, prob) in results:
                 if check_dic(text):
@@ -115,7 +115,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         text = '깍자바'
                     tipe, summary, title = get_summary(text)
                     read_text(text)
-        except UnboundLocalError as e:
+        except UnboundLocalError as e:      
             pass
             
         img = torch.from_numpy(img).to(device)
@@ -139,6 +139,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
+        
         global direction,thing
         global count
         global num
@@ -147,6 +148,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], f'{i}: ', im0s[i].copy(), dataset.count
+                
             else:
                 p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
             p = Path(p)  # to Path
@@ -159,10 +161,10 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             #frame 화면에 출력
             FPS ="FPS : %0.1f"%int(1/(t2-t1))
             cv2.putText(im0, FPS, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0,(0, 0, 255), 1,cv2.LINE_AA)
-            if len(det):
+            
+            if len(det):    # if something is(are) detected
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
 
                 # Print results
                 for c in det[:, -1].unique():
@@ -178,45 +180,20 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     if save_img or save_crop or view_img:# Add bbox to image
-                        #초기화
-                        if(num>30000):
-                            num=0
-                            lst =['0' for _ in range(30000)]
-
-
-                                
                         c = int(cls)  # integer class
-                        _thing=names[c]
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                         _direction,_depth=plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
-
-                        #count
-                        check = True
-                        for q in range(29997):
-                            if(lst[q]==_thing and lst[q+1]==_direction):
-                                lst[q+2]=str(int(lst[q+2])+1)
-                                check=False
-                                break
-                        if(check):
-                            lst[num]=_thing
-                            lst[num+1]=_direction
-                            lst[num+2]=str(1)
-                            num=num+3
+                        
+                        if names[c] in tracking_classes and conf > 0.75:
+                            dataset.talk("마우스", _direction, _depth)
+                        
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                        for w in range(29997):
-                            if(lst[w+2]=='10'):
-                                lst[w+2]=0
-                                print('please')
-                                # convert this text to speech
-                                dataset.talk(lst[w+1],lst[w],engine,_depth)
-                                break
 
             # Print time (inference + NMS)
             my_fps = (int)(1/(t2-t1))
             print(f'{s}Done. ({my_fps}FPS)')
            
-                    
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
