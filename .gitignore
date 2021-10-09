@@ -19,6 +19,7 @@
 *.avi
 *.data
 *.cfg
+*.pt
 !cfg/yolov3*.cfg
 
 storage.googleapis.com
