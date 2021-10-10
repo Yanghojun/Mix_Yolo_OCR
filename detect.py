@@ -4,7 +4,9 @@ Usage:
     $ python path/to/detect.py --source path/to/img.jpg --weights yolov5s.pt --img 640
 """
 from logging import error
-import gtts
+import os
+from numpy.core.shape_base import block
+from gtts import gTTS
 from playsound import playsound
 import pyttsx3
 import argparse
@@ -15,9 +17,11 @@ import easyocr
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
+from multiprocessing import Process
 from dictionary import *
-
-
+import speech_recognition as sr
+import json
+import threading
 engine = pyttsx3.init()
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
@@ -35,6 +39,12 @@ count = 0
 num = 0
 lst =['0' for _ in range(30000)]
 
+def korean_coco_load(path:str)->dict:
+    with open(path, encoding='utf-8') as json_file:
+        json_data = json.load(json_file)
+        
+        return json_data
+    
 @torch.no_grad()
 def run(weights='yolov5s.pt',  # model.pt path(s)
         source='data/images',  # file/dir/URL/glob, 0 for webcam
@@ -82,6 +92,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check image size
     names = model.module.names if hasattr(model, 'module') else model.names  # get class names    
+    korean_names = korean_coco_load('./utils/coco_korean.json')
+    
     if half:
         model.half()  # to FP16
 
@@ -106,6 +118,48 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
+    
+    # Thread for Speech to Text!!
+    def speech2text():
+        r = sr.Recognizer()
+        # Reading Microphone as source
+        # listening the speech and store in audio_text variable
+        with sr.Microphone() as source:
+            while(True):
+                print("Waiting for voice input...")
+                audio_text = r.listen(source)
+                # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
+                try:
+                    # using google speech recognition
+                    result = r.recognize_google(audio_text, language="ko-KR")
+                    print("Text: "+ result)
+                    print(korean_names.values())
+                    
+                    if result in korean_names.values():
+                        print("목록에 존재함")
+                        tracking_classes[0] = names[list(korean_names.values()).index(result)] # Put selected class to tracking list
+                        tts = gTTS(result + " 입력 되었습니다", lang='ko')
+                        tts.save('./listened_voice.mp3')
+                        playsound.playsound('./listened_voice.mp3', block=False)
+                        os.remove('./listened_voice.mp3')
+                        print(tracking_classes)
+                        
+                    else:
+                        print("목록에 없음")
+                        tts = gTTS("다시 말씀해주세요", lang='ko')
+                        tts.save('./listened_voice.mp3')
+                        playsound.playsound('./listened_voice.mp3', block=False)
+                        os.remove('./listened_voice.mp3')
+                        
+                except Exception as e:
+                    print(e)
+                    print("Waiting finished...")
+    
+    thread1 = threading.Thread(target=speech2text)
+    thread1.daemon = True # for endding if main thread dead
+    thread1.start()
+    # Thread Done
+    
     for path, img, im0s, depth_frame in dataset:        # 
         try:        # Try Catch for avoid UnBoundLocalError problem
             results = reader.readtext(img)
@@ -183,16 +237,20 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                         _direction,_depth=plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
-                        
+
                         if names[c] in tracking_classes and conf > 0.75:
-                            dataset.talk("마우스", _direction, _depth)
+                            # dataset.talk_detected()
+                            tts = gTTS(text = korean_names[names[c]] + _direction + "시 방향에"+ _depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
+                            tts.save('./temp_voice.mp3')
+                            playsound.playsound('./temp_voice.mp3')
+                            os.remove('./temp_voice.mp3')
                         
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
             # Print time (inference + NMS)
-            my_fps = (int)(1/(t2-t1))
-            print(f'{s}Done. ({my_fps}FPS)')
+            # my_fps = (int)(1/(t2-t1))
+            # print(f'{s}Done. ({my_fps}FPS)')
            
             # Stream results
             if view_img:

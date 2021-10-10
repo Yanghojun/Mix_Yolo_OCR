@@ -326,7 +326,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
             
-    def talk(self, name, direction, depth):
+    def talk_detected(self, name, direction, depth):
         # engine.say(_d+_o+depth[0:3]
         # tts = gTTS(text = _d + _o + depth[0:3], lang='ko')
         tts = gTTS(text = name + direction + "시 방향에"+ depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)

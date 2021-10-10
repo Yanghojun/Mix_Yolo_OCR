@@ -1,5 +1,5 @@
 # YOLOv5 general utils
-
+import json
 import contextlib
 import glob
 import logging
@@ -177,7 +177,12 @@ def check_requirements(requirements='requirements.txt', exclude=()):
             f"{prefix} ⚠️ {colorstr('bold', 'Restart runtime or rerun command for updates to take effect')}\n"
         print(emojis(s))  # emoji-safe
 
-
+def korean_coco_load(path:str)->dict:
+    with open(path, encoding='utf-8') as json_file:
+        json_data = json.load(json_file)
+        
+        return json_data
+    
 def check_img_size(img_size, s=32):
     # Verify img_size is a multiple of stride s
     new_size = make_divisible(img_size, int(s))  # ceil gs-multiple
