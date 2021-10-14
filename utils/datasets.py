@@ -14,7 +14,6 @@ from pathlib import Path
 from threading import Thread
 from gtts import gTTS
 from playsound import playsound
-import pyttsx3
 import cv2
 import numpy as np
 import torch

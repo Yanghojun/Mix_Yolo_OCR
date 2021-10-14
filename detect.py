@@ -8,7 +8,6 @@ import os
 from numpy.core.shape_base import block
 from gtts import gTTS
 from playsound import playsound
-import pyttsx3
 import argparse
 import sys
 import time
@@ -22,7 +21,7 @@ from dictionary import *
 import speech_recognition as sr
 import json
 import threading
-engine = pyttsx3.init()
+
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
 
