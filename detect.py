@@ -4,6 +4,7 @@ Usage:
     $ python path/to/detect.py --source path/to/img.jpg --weights yolov5s.pt --img 640
 """
 from logging import error
+import multiprocessing
 import os
 from numpy.core.shape_base import block
 from gtts import gTTS
@@ -16,11 +17,14 @@ import easyocr
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
-from multiprocessing import Process
+from multiprocessing import Process, Queue, Pipe
 from dictionary import *
 import speech_recognition as sr
 import json
 import threading
+import numpy as np
+
+image = np.array([0])      # Just initialize to use this variable in Multiprocess
 
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
@@ -37,6 +41,7 @@ direction,thing='',''
 count = 0
 num = 0
 lst =['0' for _ in range(30000)]
+reader = easyocr.Reader(['ko'], gpu=True)
 
 def korean_coco_load(path:str)->dict:
     with open(path, encoding='utf-8') as json_file:
@@ -69,12 +74,14 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         ):
-    if device == 'cpu':
-        reader = easyocr.Reader(['ko'], gpu=False)
-    else:
-        reader = easyocr.Reader(['ko'], gpu=True)
+
+    # if device == 'cpu':
+    #     reader = easyocr.Reader(['ko'], gpu=False)
+    # else:
+    #     reader = easyocr.Reader(['ko'], gpu=True)
 
     save_img = not nosave and not source.endswith('.txt')  # save inference images
+    save_img = False    # I don't want to save
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
     tracking_classes = ['toothbrush']
@@ -86,6 +93,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     set_logging()
     device = select_device(device)
     half &= device.type != 'cpu'  # half precision only supported on CUDA
+    fps_cal_list = []
+
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
@@ -157,19 +166,39 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     thread1 = threading.Thread(target=speech2text)
     thread1.daemon = True # for endding if main thread dead
     thread1.start()
+
     # Thread Done
-    
+    multiprocessing.set_start_method('spawn')
+
+    # def use_easy_ocr(img, q):
+    #     results = reader.readtext(img.squeeze().transpose(1,2,0))
+    #     q.put(results)
+                
+    parent_conn, child_conn = Pipe(duplex=True)
+    pr1 = Process(target = use_easy_ocr, args = (child_conn, )) # should input ", " into args when just 1 argument
+    pr1.daemon = True
+    pr1.start()
+    # tmp = q.get()
+    # print(tmp)
+
     for path, img, im0s, depth_frame in dataset:        # 
-        try:        # Try Catch for avoid UnBoundLocalError problem
-            results = reader.readtext(img)
-            for (bbox, text, prob) in results:
-                if check_dic(text):
-                    if text == '꽉자바':
-                        text = '깍자바'
-                    tipe, summary, title = get_summary(text)
-                    read_text(text)
-        except UnboundLocalError as e:      
-            pass
+        t1 = time_synchronized()
+        parent_conn.send(img)
+
+        # try:        # Try Catch for avoid UnBoundLocalError problem
+        #     results = reader.readtext(img)
+        #     print(results)
+        #     exit()
+        #     for (bbox, text, prob) in results:
+        #         if check_dic(text):
+        #             if text == '꽉자바':
+        #                 text = '깍자바'
+        #             tipe, summary, title = get_summary(text)
+        #             read_text(text)
+        # except Exception as e: 
+        #     print(e)
+        #     exit()
+        #     # pass
             
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -180,13 +209,12 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
 
 
 
-        # Inference
-        t1 = time_synchronized()
+        
         pred = model(img, augment=augment)[0]
 
         # Apply NMS
         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
-        t2 = time_synchronized()
+        # t2 = time_synchronized()
 
         
         # Apply Classifier
@@ -212,8 +240,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             imc = im0.copy() if save_crop else im0  # for save_crop
             
             #frame 화면에 출력
-            FPS ="FPS : %0.1f"%int(1/(t2-t1))
-            cv2.putText(im0, FPS, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0,(0, 0, 255), 1,cv2.LINE_AA)
+            # FPS ="FPS : %0.1f"%int(1/(t2-t1))
+            # cv2.putText(im0, FPS, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0,(0, 0, 255), 1,cv2.LINE_AA)
             
             if len(det):    # if something is(are) detected
                 # Rescale boxes from img_size to im0 size
@@ -250,7 +278,19 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             # Print time (inference + NMS)
             # my_fps = (int)(1/(t2-t1))
             # print(f'{s}Done. ({my_fps}FPS)')
-           
+            
+            tmp = parent_conn.recv()
+            # print(parent_conn.recv())
+            t2 = time_synchronized()
+            FPS ="FPS : %0.1f"%int(1/(t2-t1))
+            cv2.putText(im0, FPS, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0,(0, 0, 255), 1,cv2.LINE_AA)
+            fps_cal_list.append(int(1/(t2-t1)))
+            
+
+            if len(fps_cal_list) % 30 == 0:
+                print(f"Mean FPS: {sum(fps_cal_list) / len(fps_cal_list)}")
+                fps_cal_list = []
+
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
@@ -279,8 +319,6 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
 
     if update:
         strip_optimizer(weights)  # update model (to fix SourceChangeWarning)
-    my_fps = (int) (1/(time.time()-t0))
-    print(f'Done. ({my_fps}s)')
 
 
 def parse_opt():
@@ -317,8 +355,28 @@ def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
+def use_easy_ocr(conn):
+    while(True):
+        try:
+            local_img = conn.recv()
+            result = reader.readtext(local_img.squeeze().transpose(1,2,0))
+            conn.send(result)
+            
+        except Exception as e:
+            print(e)
+
+        # if(image == None):
+        #     print("Image None")
+        # elif(image == np.array([0])):
+        #     print("image is np.array()")
+        # else:
+        #     result = reader.readtext(image.squeeze().transpose(1,2,0))
+        #     conn.send(result)
+            
+    # for _, img, _, _ in dataset:
+    #     results = reader.readtext(img.squeeze().transpose(1,2,0))
+    #     q.put(results)
 
 if __name__ == "__main__":
-    
     opt = parse_opt()
     main(opt)
