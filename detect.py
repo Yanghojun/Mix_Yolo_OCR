@@ -43,7 +43,7 @@ direction,thing='',''
 count = 0
 num = 0
 lst =['0' for _ in range(30000)]
-reader = easyocr.Reader(['ko'], gpu=True)
+reader = easyocr.Reader(['ko', 'en'], gpu=True)
 
 def korean_coco_load(path:str)->dict:
     with open(path, encoding='utf-8') as json_file:
@@ -88,8 +88,6 @@ def speech2text(shared_tracking_class, korean_names, names):
                         os.remove('./listened_voice.mp3')
                         
                 except Exception as e:
-                    # print(e)
-                    # print("Waiting finished...")
                     traceback.print_exc()
 
 @torch.no_grad()
@@ -178,36 +176,15 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     mike_pr1.daemon = True
     print("Mike input process start")
     mike_pr1.start()
-
-    # def use_easy_ocr(img, q):
-    #     results = reader.readtext(img.squeeze().transpose(1,2,0))
-    #     q.put(results)
                 
     parent_conn, child_conn = Pipe(duplex=True)
     pr1 = Process(target = use_easy_ocr, args = (child_conn, )) # should input ", " into args when just 1 argument
     pr1.daemon = True
     pr1.start()
-    # tmp = q.get()
-    # print(tmp)
 
     for path, img, im0s, depth_frame in dataset:        # 
         t1 = time_synchronized()
         parent_conn.send(img)
-
-        # try:        # Try Catch for avoid UnBoundLocalError problem
-        #     results = reader.readtext(img)
-        #     print(results)
-        #     exit()
-        #     for (bbox, text, prob) in results:
-        #         if check_dic(text):
-        #             if text == '꽉자바':
-        #                 text = '깍자바'
-        #             tipe, summary, title = get_summary(text)
-        #             read_text(text)
-        # except Exception as e: 
-        #     print(e)
-        #     exit()
-        #     # pass
             
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -364,14 +341,25 @@ def main(opt):
     run(**vars(opt))
 
 def use_easy_ocr(conn):
+    with open("./data/embedded_competition/file_path.json", "r", encoding='utf-8') as jsonfile:
+        text_dict = json.load(jsonfile)
+    
     while(True):
         try:
             local_img = conn.recv()
             result = reader.readtext(local_img.squeeze().transpose(1,2,0))
+            print(result)
+            
+            for detected in result:
+                word = detected[1]
+                
+                if word in text_dict.keys():
+                    playsound.playsound(text_dict[word], block = True)
+
             conn.send(result)
             
         except Exception as e:
-            print(e)
+            traceback.print_exc()
 
 if __name__ == "__main__":
     opt = parse_opt()

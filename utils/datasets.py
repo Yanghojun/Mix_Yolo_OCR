@@ -313,8 +313,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
             self.imgs[i] = np.array(tmp.get_color_frame().get_data())
             self.depth = tmp.get_depth_frame()
 
-            self.threads[i] = Thread(target=self.update, args=([i, pipe]), daemon=True)     # 내 생각에 여러 카메라를 돌리는걸 생각해서 쓰레드를 쓰는것 같은데..?
-                                                                                            # 굳이 써야하나
+            self.threads[i] = Thread(target=self.update, args=([i, pipe]), daemon=True)
             print(f" success ({self.frames[i]} frames {w}x{h} at {self.fps[i]:.2f} FPS)")
             self.threads[i].start()
         print('')  # newline
@@ -326,15 +325,10 @@ class LoadStreams:  # multiple IP or RTSP cameras
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
             
     def talk_detected(self, name, direction, depth):
-        # engine.say(_d+_o+depth[0:3]
-        # tts = gTTS(text = _d + _o + depth[0:3], lang='ko')
         tts = gTTS(text = name + direction + "시 방향에"+ depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
         tts.save('./temp_voice.mp3')
         playsound('./temp_voice.mp3')
         os.remove('./temp_voice.mp3')
-        # play the speech
-        # engine.runAndWait()
-
 
     def update(self, i, pipe):
         # Read stream `i` frames in daemon threads
