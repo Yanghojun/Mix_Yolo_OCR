@@ -6,6 +6,8 @@ Usage:
 from logging import error
 import multiprocessing
 import os
+import traceback
+from ctypes import c_char_p
 from numpy.core.shape_base import block
 from gtts import gTTS
 from playsound import playsound
@@ -17,7 +19,7 @@ import easyocr
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
-from multiprocessing import Process, Queue, Pipe
+from multiprocessing import Process, Queue, Pipe, Manager
 from dictionary import *
 import speech_recognition as sr
 import json
@@ -49,17 +51,18 @@ def korean_coco_load(path:str)->dict:
         
         return json_data
 
-def speech2text(tracking_classes, korean_names, names):
+def speech2text(shared_tracking_class, korean_names, names):
         r = sr.Recognizer()
-        r.energy_threshold = 8000
+        r.energy_threshold = 800000
         # Reading Microphone as source
         # listening the speech and store in audio_text variable
-        with sr.Microphone() as source:
-            # r.adjust_for_ambient_noise(source)    # dynamically adjust ambient noise
-
-            while(True):
+        
+        while(True):
+            with sr.Microphone() as source:  
+                # r.adjust_for_ambient_noise(source)    # dynamically adjust ambient noise
                 print("Waiting for voice input...")
                 # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
+
                 try:
                     audio_text = r.listen(source, phrase_time_limit=3)
                     # using google speech recognition
@@ -69,12 +72,12 @@ def speech2text(tracking_classes, korean_names, names):
                     
                     if result in korean_names.values():
                         print("목록에 존재함")
-                        tracking_classes[0] = names[list(korean_names.values()).index(result)] # Put selected class to tracking list
+                        shared_tracking_class.value = names[list(korean_names.values()).index(result)] # Put selected class to tracking list
                         tts = gTTS(result + " 입력 되었습니다", lang='ko')
                         tts.save('./listened_voice.mp3')
-                        playsound.playsound('./listened_voice.mp3', block=False)
+                        playsound.playsound('./listened_voice.mp3', block=True)
                         os.remove('./listened_voice.mp3')
-                        print(tracking_classes)
+                        print(shared_tracking_class.value)
                         
                     else:
                         print("목록에 없음")
@@ -83,11 +86,11 @@ def speech2text(tracking_classes, korean_names, names):
                         playsound.playsound('./listened_voice.mp3', block=True)
                         print("Is this printed out?")
                         os.remove('./listened_voice.mp3')
-                        source.__reduce__
                         
                 except Exception as e:
-                    print(e)
-                    print("Waiting finished...")
+                    # print(e)
+                    # print("Waiting finished...")
+                    traceback.print_exc()
 
 @torch.no_grad()
 def run(weights='yolov5s.pt',  # model.pt path(s)
@@ -124,7 +127,6 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     save_img = False    # I don't want to save
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
-    tracking_classes = ['toothbrush']
     # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
@@ -134,6 +136,11 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     device = select_device(device)
     half &= device.type != 'cpu'  # half precision only supported on CUDA
     fps_cal_list = []
+    
+    # Initialize multiprocess
+    multiprocessing.set_start_method('spawn')
+    manager = Manager()
+    shared_tracking_class = manager.Value(c_char_p, "mouse")
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
@@ -166,11 +173,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
-    
-    
-    multiprocessing.set_start_method('spawn')
 
-    mike_pr1 = Process(target=speech2text, args=(tracking_classes, korean_names, names))
+    mike_pr1 = Process(target=speech2text, args=(shared_tracking_class, korean_names, names))
     mike_pr1.daemon = True
     print("Mike input process start")
     mike_pr1.start()
@@ -270,11 +274,10 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                         _direction,_depth=plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
 
-                        if names[c] in tracking_classes and conf > 0.75:
-                            # dataset.talk_detected()
+                        if names[c] == shared_tracking_class.value and conf > 0.75:
                             tts = gTTS(text = korean_names[names[c]] + _direction + "시 방향에"+ _depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
                             tts.save('./temp_voice.mp3')
-                            playsound.playsound('./temp_voice.mp3')
+                            playsound.playsound('./temp_voice.mp3', block=True)
                             os.remove('./temp_voice.mp3')
                         
                         if save_crop:
@@ -369,18 +372,6 @@ def use_easy_ocr(conn):
             
         except Exception as e:
             print(e)
-
-        # if(image == None):
-        #     print("Image None")
-        # elif(image == np.array([0])):
-        #     print("image is np.array()")
-        # else:
-        #     result = reader.readtext(image.squeeze().transpose(1,2,0))
-        #     conn.send(result)
-            
-    # for _, img, _, _ in dataset:
-    #     results = reader.readtext(img.squeeze().transpose(1,2,0))
-    #     q.put(results)
 
 if __name__ == "__main__":
     opt = parse_opt()
