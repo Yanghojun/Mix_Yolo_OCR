@@ -19,7 +19,7 @@ import easyocr
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
-from multiprocessing import Process, Queue, Pipe, Manager
+from multiprocessing import Process, Queue, Pipe, Manager, Lock
 from dictionary import *
 import speech_recognition as sr
 import json
@@ -51,44 +51,50 @@ def korean_coco_load(path:str)->dict:
         
         return json_data
 
-def speech2text(shared_tracking_class, korean_names, names):
+def speech2text(shared_tracking_class, korean_names, names, lock):
         r = sr.Recognizer()
         r.energy_threshold = 800000
         # Reading Microphone as source
         # listening the speech and store in audio_text variable
         
+        lock_key = False # if this True, Then allow to play audio
         while(True):
-            with sr.Microphone() as source:  
-                # r.adjust_for_ambient_noise(source)    # dynamically adjust ambient noise
-                print("Waiting for voice input...")
-                # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
 
-                try:
-                    audio_text = r.listen(source, phrase_time_limit=3)
-                    # using google speech recognition
-                    result = r.recognize_google(audio_text, language="ko-KR")
-                    print("Text: "+ result)
-                    print(korean_names.values())
-                    
-                    if result in korean_names.values():
-                        print("목록에 존재함")
-                        shared_tracking_class.value = names[list(korean_names.values()).index(result)] # Put selected class to tracking list
-                        tts = gTTS(result + " 입력 되었습니다", lang='ko')
-                        tts.save('./listened_voice.mp3')
-                        playsound.playsound('./listened_voice.mp3', block=True)
-                        os.remove('./listened_voice.mp3')
-                        print(shared_tracking_class.value)
+            with lock:
+                lock_key = True
+                with sr.Microphone() as source:  
+                    # r.adjust_for_ambient_noise(source)    # dynamically adjust ambient noise
+                    print("Waiting for voice input...")
+                    # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
+
+                    try:
+                        audio_text = r.listen(source, phrase_time_limit=3)
+                        # using google speech recognition
+                        result = r.recognize_google(audio_text, language="ko-KR")
+                        print("Text: "+ result)
+                        print(korean_names.values())
                         
-                    else:
-                        print("목록에 없음")
-                        tts = gTTS("다시 말씀해주세요", lang='ko')
-                        tts.save('./listened_voice.mp3')
-                        playsound.playsound('./listened_voice.mp3', block=True)
-                        print("Is this printed out?")
-                        os.remove('./listened_voice.mp3')
-                        
-                except Exception as e:
-                    traceback.print_exc()
+                        if result in korean_names.values():
+                            print("목록에 존재함")
+                            shared_tracking_class.value = names[list(korean_names.values()).index(result)] # Put selected class to tracking list
+                            tts = gTTS(result + " 입력 되었습니다", lang='ko')
+                            tts.save('./listened_voice.mp3')
+                            playsound.playsound('./listened_voice.mp3', block=True)
+                            print(shared_tracking_class.value)
+                            print("isisis?")
+                            os.remove('./listened_voice.mp3')
+                            
+                            
+                        else:
+                            print("목록에 없음")
+                            tts = gTTS(result + "가 목록에 없습니다", lang='ko')
+                            tts.save('./listened_voice.mp3')
+                            playsound.playsound('./listened_voice.mp3', block=True)
+                            print("Is this printed out?")
+                            os.remove('./listened_voice.mp3')
+                            
+                    except Exception as e:
+                        traceback.print_exc()
 
 @torch.no_grad()
 def run(weights='yolov5s.pt',  # model.pt path(s)
@@ -137,6 +143,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     
     # Initialize multiprocess
     multiprocessing.set_start_method('spawn')
+    lock = Lock()
     manager = Manager()
     shared_tracking_class = manager.Value(c_char_p, "mouse")
 
@@ -172,13 +179,13 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
 
-    mike_pr1 = Process(target=speech2text, args=(shared_tracking_class, korean_names, names))
+    mike_pr1 = Process(target=speech2text, args=(shared_tracking_class, korean_names, names, lock))
     mike_pr1.daemon = True
     print("Mike input process start")
     mike_pr1.start()
                 
     parent_conn, child_conn = Pipe(duplex=True)
-    pr1 = Process(target = use_easy_ocr, args = (child_conn, )) # should input ", " into args when just 1 argument
+    pr1 = Process(target = use_easy_ocr, args = (child_conn, lock)) # should input ", " into args when just 1 argument
     pr1.daemon = True
     pr1.start()
 
@@ -254,7 +261,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         if names[c] == shared_tracking_class.value and conf > 0.75:
                             tts = gTTS(text = korean_names[names[c]] + _direction + "시 방향에"+ _depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
                             tts.save('./temp_voice.mp3')
-                            playsound.playsound('./temp_voice.mp3', block=True)
+                            with lock:
+                                playsound.playsound('./temp_voice.mp3', block=True)
                             os.remove('./temp_voice.mp3')
                         
                         if save_crop:
@@ -340,7 +348,7 @@ def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
-def use_easy_ocr(conn):
+def use_easy_ocr(conn, lock):
     with open("./data/embedded_competition/file_path.json", "r", encoding='utf-8') as jsonfile:
         text_dict = json.load(jsonfile)
     
@@ -354,7 +362,8 @@ def use_easy_ocr(conn):
                 word = detected[1]
                 
                 if word in text_dict.keys():
-                    playsound.playsound(text_dict[word], block = True)
+                    with lock:
+                        playsound.playsound(text_dict[word], block = True)
 
             conn.send(result)
             
