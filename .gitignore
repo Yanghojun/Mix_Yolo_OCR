@@ -24,7 +24,7 @@
 
 storage.googleapis.com
 runs/*
-data/*
+
 !data/agri_chem/
 !data/hyps/*
 !data/images/zidane.jpg

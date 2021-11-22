@@ -5,6 +5,7 @@ Usage:
 """
 from logging import error
 import multiprocessing
+import pyttsx3
 import os
 import traceback
 from ctypes import c_char_p
@@ -45,6 +46,10 @@ num = 0
 lst =['0' for _ in range(30000)]
 reader = easyocr.Reader(['ko', 'en'], gpu=True)
 
+# easy-ocr dict initialization
+with open("./data/embedded_competition/file_path.json", "r", encoding='utf-8') as jsonfile:
+        text_dict = json.load(jsonfile)
+
 def korean_coco_load(path:str)->dict:
     with open(path, encoding='utf-8') as json_file:
         json_data = json.load(json_file)
@@ -77,22 +82,28 @@ def speech2text(shared_tracking_class, korean_names, names, lock):
                         if result in korean_names.values():
                             print("목록에 존재함")
                             shared_tracking_class.value = names[list(korean_names.values()).index(result)] # Put selected class to tracking list
+                            # engine = pyttsx3.init()
+                            # engine.say("I will speak this text")
+                            # engine.runAndWait()
+                            # exit()
+
                             tts = gTTS(result + " 입력 되었습니다", lang='ko')
                             tts.save('./listened_voice.mp3')
                             playsound.playsound('./listened_voice.mp3', block=True)
                             print(shared_tracking_class.value)
-                            print("isisis?")
                             os.remove('./listened_voice.mp3')
-                            
                             
                         else:
                             print("목록에 없음")
                             tts = gTTS(result + "가 목록에 없습니다", lang='ko')
                             tts.save('./listened_voice.mp3')
                             playsound.playsound('./listened_voice.mp3', block=True)
-                            print("Is this printed out?")
                             os.remove('./listened_voice.mp3')
                             
+                    except sr.RequestError:
+                        playsound.playsound('./No_internet_connection.mp3')
+                        traceback.print_exc()
+
                     except Exception as e:
                         traceback.print_exc()
 
@@ -145,7 +156,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     multiprocessing.set_start_method('spawn')
     lock = Lock()
     manager = Manager()
-    shared_tracking_class = manager.Value(c_char_p, "mouse")
+    shared_tracking_class = manager.Value(c_char_p, "zebra")
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
@@ -156,6 +167,8 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     
     if half:
         model.half()  # to FP16
+    
+    print(f"################################ half {half}")
 
     # Second-stage classifier
     classify = False
@@ -184,14 +197,17 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
     print("Mike input process start")
     mike_pr1.start()
                 
-    parent_conn, child_conn = Pipe(duplex=True)
-    pr1 = Process(target = use_easy_ocr, args = (child_conn, lock)) # should input ", " into args when just 1 argument
-    pr1.daemon = True
-    pr1.start()
+    # parent_conn, child_conn = Pipe(duplex=True)
+    # pr1 = Process(target = use_easy_ocr, args = (child_conn, lock)) # should input ", " into args when just 1 argument
+    # pr1.daemon = True
+    # pr1.start()
+    
 
     for path, img, im0s, depth_frame in dataset:        # 
         t1 = time_synchronized()
-        parent_conn.send(img)
+        # parent_conn.send(img)
+        
+        use_easy_ocr(img, lock)
             
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -258,12 +274,23 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                         _direction,_depth=plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=line_thickness, depth_frame=depth_frame)
 
-                        if names[c] == shared_tracking_class.value and conf > 0.75:
-                            tts = gTTS(text = korean_names[names[c]] + _direction + "시 방향에"+ _depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
-                            tts.save('./temp_voice.mp3')
-                            with lock:
-                                playsound.playsound('./temp_voice.mp3', block=True)
-                            os.remove('./temp_voice.mp3')
+                        if names[c] == shared_tracking_class.value and conf > 0.3:
+                            try:
+                                tts = gTTS(text = korean_names[names[c]] + _direction + "시 방향에"+ _depth[0:3] + "미터 거리에 있습니다", lang='ko', slow=False)
+                                shared_tracking_class.value = '' # 한번 클래스를 찾으면 반복적으로 찾지 않도록 구성
+                            except Exception as e:
+                                traceback.print_exc()
+                            try:
+                                tts.save('./temp_voice.mp3')
+                                with lock:
+                                    playsound.playsound('./temp_voice.mp3', block=True)
+                                os.remove('./temp_voice.mp3')
+                            except Exception as e:
+                                traceback.print_exc()
+                                with lock:      
+                                    playsound.playsound('./No_internet_connection.mp3', block=True)    
+                            
+                            
                         
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
@@ -272,7 +299,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             # my_fps = (int)(1/(t2-t1))
             # print(f'{s}Done. ({my_fps}FPS)')
             
-            tmp = parent_conn.recv()
+            # tmp = parent_conn.recv()
             # print(parent_conn.recv())
             t2 = time_synchronized()
             FPS ="FPS : %0.1f"%int(1/(t2-t1))
@@ -348,27 +375,43 @@ def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
-def use_easy_ocr(conn, lock):
-    with open("./data/embedded_competition/file_path.json", "r", encoding='utf-8') as jsonfile:
-        text_dict = json.load(jsonfile)
+# def use_easy_ocr(conn, lock):
+#     with open("./data/embedded_competition/file_path.json", "r", encoding='utf-8') as jsonfile:
+#         text_dict = json.load(jsonfile)
     
-    while(True):
-        try:
-            local_img = conn.recv()
-            result = reader.readtext(local_img.squeeze().transpose(1,2,0))
-            print(result)
+#     while(True):
+#         try:
+#             local_img = conn.recv()
+#             result = reader.readtext(local_img.squeeze().transpose(1,2,0))
+#             print(result)
             
-            for detected in result:
-                word = detected[1]
+#             for detected in result:
+#                 word = detected[1]
                 
-                if word in text_dict.keys():
-                    with lock:
-                        playsound.playsound(text_dict[word], block = True)
+#                 if word in text_dict.keys():
+#                     with lock:
+#                         playsound.playsound(text_dict[word], block = True)
 
-            conn.send(result)
+#             conn.send(result)
             
-        except Exception as e:
-            traceback.print_exc()
+#         except Exception as e:
+#             traceback.print_exc()
+
+def use_easy_ocr(img, lock):
+    
+    try:
+        result = reader.readtext(img.squeeze().transpose(1,2,0))
+        print(result)
+        
+        for detected in result:
+            word = detected[1]
+            
+            if word in text_dict.keys():
+                with lock:
+                    playsound.playsound(text_dict[word], block = True)
+                    
+    except Exception as e:
+        traceback.print_exc()
 
 if __name__ == "__main__":
     opt = parse_opt()
