@@ -1,12 +1,3 @@
-# Installation
-## windows 11
-``` python
-pip install pyrealsense
-```
-- 위 명령어만 실행해주면 바로 아래 테스트 코드 실행 가능
-
-### Test Code
-```python
 import pyrealsense2 as rs
 import numpy as np
 import cv2
@@ -26,6 +17,7 @@ for s in device.sensors:
     if s.get_info(rs.camera_info.name) == 'RGB Camera':
         found_rgb = True
         break
+    print("No")
 if not found_rgb:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
@@ -76,6 +68,3 @@ finally:
 
     # Stop streaming
     pipeline.stop()
-```
-- 결과화면
-![](/images/2022-02-14-00-25-22.png)
