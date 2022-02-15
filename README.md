@@ -89,10 +89,12 @@ finally:
 ## 사용한 영상
 
 <table>
+
 <tr align="center"> <!-- 한 줄 생성-->
 <td> Cetaphil </td>  <!-- 한 줄에 채울 칼럼 한칸 씩 여는 것 -->
 <td> 만능크리너 </td>
 </tr>
+
 <tr align="center">
 <td>
 <video width="80%" autoplay loop muted>
@@ -105,10 +107,12 @@ finally:
 </video>
 </td>
 </tr>
+
 <tr align="center">
 <td> 정관장 </td>
 <td> 딱풀</td>
 </tr>
+
 <tr align="center">
 <td>
 <video width="80%" autoplay loop muted>
@@ -121,6 +125,7 @@ finally:
 </video>
 <td>
 </tr>
+
 </table>
 
 ## 실험결과 
