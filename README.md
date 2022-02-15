@@ -102,9 +102,10 @@ finally:
 </video>
 </td>
 <td>
-<video width="80%" autoplay loop muted>
+<!-- <video width="80%" autoplay loop muted>
 <source src="/videos/만능크리너_편집본.mp4" type="video/mp4">
-</video>
+</video> -->
+<img width="80%" src="/videos/홍삼정환.gif">
 </td>
 </tr>
 
