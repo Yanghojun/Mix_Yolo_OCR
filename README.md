@@ -99,10 +99,8 @@ finally:
 <td>
 <img width="80%" src="/videos/Cetaphil.gif">
 </td>
+
 <td>
-<!-- <video width="80%" autoplay loop muted>
-<source src="/videos/만능크리너_편집본.mp4" type="video/mp4">
-</video> -->
 <img width="80%" src="/videos/만능크리너.gif">
 </td>
 </tr>
@@ -130,3 +128,4 @@ finally:
 |Cetaphil|0.295|325|
 |만능크리너|0.88|443|
 |정관장|0.48|434|
+|딱풀|||
