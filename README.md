@@ -86,6 +86,43 @@ finally:
 
 [실험 스크립트](/utils/BLEU_Eval.ipynb)
 
+## 사용한 영상
+
+<table>
+<tr align="center"> <!-- 한 줄 생성-->
+<td> Cetaphil </td>  <!-- 한 줄에 채울 칼럼 한칸 씩 여는 것 -->
+<td> 만능크리너 </td>
+</tr>
+<tr align="center">
+<td>
+<video width="80%" autoplay loop muted>
+<source src="/videos/Cetaphil.mp4" type="video/mp4">
+</video>
+</td>
+<td>
+<video width="80%" autoplay loop muted>
+<source src="/videos/만능크리너_편집본.mp4" type="video/mp4">
+</video>
+</td>
+</tr>
+<tr align="center">
+<td> 정관장 </td>
+<td> 딱풀</td>
+</tr>
+<tr align="center">
+<td>
+<video width="80%" autoplay loop muted>
+<source src="/videos/정관장 편집본.mp4" type="video/mp4">
+</video>
+</td>
+<td>
+<video width="80%" autoplay loop muted>
+<source src="/videos/딱풀_편집본.mp4" type="video/mp4">
+</video>
+<td>
+</tr>
+</table>
+
 ## 실험결과 
 
 |품목 이름|평균 BLEU 스코어|프레임 수|
