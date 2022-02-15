@@ -97,15 +97,13 @@ finally:
 
 <tr align="center">
 <td>
-<video width="80%" autoplay loop muted>
-<source src="/videos/Cetaphil.mp4" type="video/mp4">
-</video>
+<img width="80%" src="/videos/Cetaphil.gif">
 </td>
 <td>
 <!-- <video width="80%" autoplay loop muted>
 <source src="/videos/만능크리너_편집본.mp4" type="video/mp4">
 </video> -->
-<img width="80%" src="/videos/홍삼정환.gif">
+<img width="80%" src="/videos/만능크리너.gif">
 </td>
 </tr>
 
@@ -116,14 +114,10 @@ finally:
 
 <tr align="center">
 <td>
-<video width="80%" autoplay loop muted>
-<source src="/videos/정관장 편집본.mp4" type="video/mp4">
-</video>
+<img width="80%" src="/videos/정관장.gif">
 </td>
 <td>
-<video width="80%" autoplay loop muted>
-<source src="/videos/딱풀_편집본.mp4" type="video/mp4">
-</video>
+<img width="80%" src="/videos/딱풀.gif">
 <td>
 </tr>
 
