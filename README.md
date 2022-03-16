@@ -97,11 +97,11 @@ finally:
 
 <tr align="center">
 <td>
-<img width="80%" src="/videos/Cetaphil.gif">
+<img width="60%" src="/videos/Cetaphil.gif">
 </td>
 
 <td>
-<img width="80%" src="/videos/만능크리너.gif">
+<img width="60%" src="/videos/만능크리너.gif">
 </td>
 </tr>
 
@@ -112,10 +112,10 @@ finally:
 
 <tr align="center">
 <td>
-<img width="80%" src="/videos/정관장.gif">
+<img width="60%" src="/videos/정관장.gif">
 </td>
 <td>
-<img width="80%" src="/videos/딱풀.gif">
+<img width="60%" src="/videos/딱풀.gif">
 <td>
 </tr>
 
@@ -128,4 +128,4 @@ finally:
 |Cetaphil|0.295|325|
 |만능크리너|0.88|443|
 |정관장|0.48|434|
-|딱풀|||
+|딱풀|0.12|437|
