@@ -5,7 +5,7 @@
   - [사용한 영상](#사용한-영상)
   - [실험결과](#실험결과)
 - [Training](#training)
-  - [Data](#data)
+  - [Annotation](#annotation)
   - [Data Augmentation](#data-augmentation)
 
 # Installation
@@ -143,14 +143,31 @@ finally:
 
 # Training
 
-## Data
+## Annotation
+
+- labelimg 프로그램 사용
+
+    ```bash
+    labelimg [image_dir] [predefined_classes.txt file name]
+    ```
+
+    - 현재(2022-05-17)의 predefined_classes.txt file
+
+        ```bash
+        port
+        shovel
+        rake
+        homi
+        pick
+        bigpick
+        ```
 
 ## Data Augmentation
 
 - imgargs.py
 
     ```python
-    python imgargs.py --input_root "root dir of images" --input_label_root "root dir of labels" --num "num of augmentation per image"
+    python imgargs.py --input_root [root dir of images] --input_label_root [root dir of labels] --num [num of augmentation per image]
     ```
 
   - [x] 138 서버에서 3000 * 5 = 15000장 이미지 및 레이블 파일 생성
