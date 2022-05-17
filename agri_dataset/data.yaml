@@ -1,7 +1,7 @@
-train: ../yolov5/agri_dataset/train/images
+train: ../yolov5/agri_dataset/train
 # train: ./train/images
-val: ../yolov5/agri_dataset/valid/images
+val: ../yolov5/agri_dataset/valid
 # val: ./valid/images
 
-nc: 2
-names: ['pork', 'shovel']
+nc: 6
+names: ['pork', 'shovel', 'rake', 'homi', 'pick', 'bigpick']

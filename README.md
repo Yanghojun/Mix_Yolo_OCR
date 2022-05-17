@@ -1,7 +1,16 @@
+- [Installation](#installation)
+  - [windows 11](#windows-11)
+    - [Test Code](#test-code)
+- [BLEU 기반 성능 테스트](#bleu-기반-성능-테스트)
+  - [사용한 영상](#사용한-영상)
+  - [실험결과](#실험결과)
+- [Training](#training)
+  - [Data](#data)
+
 # Installation
 ## windows 11
 ``` python
-pip install pyrealsense
+pip install pyrealsense2
 ```
 - 위 명령어만 실행해주면 바로 아래 테스트 코드 실행 가능
 
@@ -129,3 +138,8 @@ finally:
 |만능크리너|0.88|443|
 |정관장|0.48|434|
 |딱풀|0.12|437|
+
+# Training
+
+## Data
+

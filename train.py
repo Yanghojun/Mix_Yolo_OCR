@@ -26,7 +26,7 @@ import torch.utils.data
 import yaml
 from torch.cuda import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 FILE = Path(__file__).absolute()
@@ -92,10 +92,12 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     loggers = {'wandb': None, 'tb': None}  # loggers dict
     if RANK in [-1, 0]:
         # TensorBoard
-        if not evolve:
-            prefix = colorstr('tensorboard: ')
-            logger.info(f"{prefix}Start with 'tensorboard --logdir {opt.project}', view at http://localhost:6006/")
-            loggers['tb'] = SummaryWriter(str(save_dir))
+
+        # TensorBoard 주석처리
+        # if not evolve:
+        #     prefix = colorstr('tensorboard: ')
+        #     logger.info(f"{prefix}Start with 'tensorboard --logdir {opt.project}', view at http://localhost:6006/")
+        #     loggers['tb'] = SummaryWriter(str(save_dir))
 
         # W&B
         opt.hyp = hyp  # add hyperparameters

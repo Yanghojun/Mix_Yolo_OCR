@@ -1,12 +1,13 @@
 # Repo-specific GitIgnore ----------------------------------------------------------------------------------------------
 *.jpg
+*.JPG
+!/imgaug/data/cats/*.jpg
 *.jpeg
 *.png
 *.bmp
 *.tif
 *.tiff
 *.heic
-*.JPG
 *.JPEG
 *.PNG
 !/images/*.png
