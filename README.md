@@ -6,8 +6,10 @@
   - [실험결과](#실험결과)
 - [Training](#training)
   - [Data](#data)
+  - [Data Augmentation](#data-augmentation)
 
 # Installation
+
 ## windows 11
 ``` python
 pip install pyrealsense2
@@ -143,3 +145,12 @@ finally:
 
 ## Data
 
+## Data Augmentation
+
+- imgargs.py
+
+    ```python
+    python imgargs.py --input_root "root dir of images" --input_label_root "root dir of labels" --num "num of augmentation per image"
+    ```
+
+  - [x] 138 서버에서 3000 * 5 = 15000장 이미지 및 레이블 파일 생성
