@@ -145,7 +145,7 @@ finally:
 
 ## Annotation
 
-- labelimg 프로그램 사용
+- labelimg 프로그램 사용: 아래 명령어로 labelimg를 열어야 클래스 인덱스 꼬이지 않음. 그렇지 않을 시 pork 클래스가 3번으로 인덱싱 되는것(다른 데이터들은 0으로 pork 인덱싱 되어있는 상태)과 같은 문제 발생
 
     ```bash
     labelimg [image_dir] [predefined_classes.txt file name]
@@ -154,7 +154,7 @@ finally:
     - 현재(2022-05-17)의 predefined_classes.txt file
 
         ```bash
-        port
+        pork
         shovel
         rake
         homi
