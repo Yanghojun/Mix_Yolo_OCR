@@ -144,7 +144,7 @@ finally:
 # Training
 
 ```python
-python train.py --data data.yaml --batch-size 32 --project yolo_agri_experiment --bbox_interval 5 
+python train.py --data ./data/data.yaml --epochs 300 --project yolo_agri_experiment --bbox_interval 5 --save-period 5 --batch-size 64 --workers 16
 ```
 - imgsz의 경우 detect.py 에서는 `(640, 480)` 형식으로 imgsz를 입력해줄 수 있지만 training.py 에서는 하나의 값(정수)로만 입력이 가능하다.
 
