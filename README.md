@@ -143,6 +143,11 @@ finally:
 
 # Training
 
+```python
+python train.py --data data.yaml --batch-size 32 --project yolo_agri_experiment --bbox_interval 5 
+```
+- imgsz의 경우 detect.py 에서는 `(640, 480)` 형식으로 imgsz를 입력해줄 수 있지만 training.py 에서는 하나의 값(정수)로만 입력이 가능하다.
+
 ## Annotation
 
 - labelimg 프로그램 사용: 아래 명령어로 labelimg를 열어야 클래스 인덱스 꼬이지 않음. 그렇지 않을 시 pork 클래스가 3번으로 인덱싱 되는것(다른 데이터들은 0으로 pork 인덱싱 되어있는 상태)과 같은 문제 발생
