@@ -1,1 +1,6 @@
 .vscode/
+*.pt
+
+/runs
+yolov5/runs
+*.mp4
