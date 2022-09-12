@@ -7,6 +7,7 @@
 - [Training](#training)
   - [Annotation](#annotation)
   - [Data Augmentation](#data-augmentation)
+- [농기구 학습 결과](#농기구-학습-결과)
 
 # Installation
 
@@ -176,3 +177,8 @@ python train.py --data ./data/data.yaml --epochs 300 --project yolo_agri_experim
     ```
 
   - [x] 138 서버에서 3000 * 5 = 15000장 이미지 및 레이블 파일 생성
+
+# 농기구 학습 결과
+
+![](images/20220523122814.png)
+- epoch: 
