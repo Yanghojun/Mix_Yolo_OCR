@@ -1,8 +1,26 @@
+본 Repository의 `yolov5` 디렉토리는 `Submodule`이다. -> [서브모듈 주소](https://github.com/Yanghojun/Sub_Yolov5)
+
+본 Repository는 Submodule이 존재하니 주의할 것  
+
+- submodule 확인 명령어
+
+```bash
+git submodule
+```
+
+- Inference 코드
+
+```python
+python3 track.py --source 0 --yolo-weights yolov5s_agri.pt
+```
+
+# Submodule
+
+
+
+
+
 # Yolov5 + StrongSORT with OSNet
-
-
-
-
 
 <div align="center">
 <p>
