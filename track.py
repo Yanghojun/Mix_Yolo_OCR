@@ -2,6 +2,7 @@ import argparse
 
 import os
 from threading import current_thread
+import PIL
 
 from gtts import gTTS
 # limit the number of cpus used by high performance libraries
@@ -12,6 +13,7 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import sys
+import torchvision
 import numpy as np
 from pathlib import Path
 import torch
@@ -22,6 +24,7 @@ import time
 import threading
 from collections import deque
 import easyocr
+import PIL
 reader = easyocr.Reader(lang_list=['ko', 'en'], gpu=True)
 
 FILE = Path(__file__).resolve()
@@ -175,13 +178,20 @@ def run(
 
     # Run tracking
     model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
+
+    # easyocr warmup (Is this make easyocr init part faster)
+    for _ in range(2):
+        print(reader.readtext('./easy_ocr_warmup_img.jpg', detail=0))
+
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
     curr_frames, prev_frames = [None] * nr_sources, [None] * nr_sources
     for frame_idx, (path, im, im0s, vid_cap, s, depth_frame) in enumerate(dataset):
+        # im.shape => 1, 3, 480, 640     batch, channel, height, width
         t1 = time_sync()
 
         # easyocr
-        print(reader.readtext(np.transpose(np.squeeze(im.copy()), axes=(1,2,0))[160:480,:,:], detail=0))
+        # print(f"im.shape: {im.shape} \n np.squeeze(im.copy()).shape: {np.squeeze(im.copy()).shape} \n np.transpose(np.squeeze(im.copy()).axes=(1, 2, 0)): {np.transpose(np.squeeze(im.copy()), axes=(1,2,0))[160:480,:,:].shape}")
+        print(reader.readtext(np.transpose(np.squeeze(im.copy()), axes=(1,2,0))[160:480,:,:], detail=0))    # width, height, channel
 
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
