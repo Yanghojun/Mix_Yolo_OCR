@@ -4,3 +4,7 @@
 /runs
 yolov5/runs
 *.mp4
+*.whl
+install_torch.sh
+*.zip
+torchvision/

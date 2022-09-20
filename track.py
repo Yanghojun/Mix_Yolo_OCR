@@ -1,6 +1,9 @@
 import argparse
 
 import os
+from threading import current_thread
+
+from gtts import gTTS
 # limit the number of cpus used by high performance libraries
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -13,6 +16,13 @@ import numpy as np
 from pathlib import Path
 import torch
 import torch.backends.cudnn as cudnn
+import yaml
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+import time
+import threading
+from collections import deque
+import easyocr
+reader = easyocr.Reader(lang_list=['ko', 'en'], gpu=True)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # yolov5 strongsort root directory
@@ -35,6 +45,7 @@ from yolov5.utils.torch_utils import select_device, time_sync
 from yolov5.utils.plots import Annotator, colors, save_one_box
 from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
+from playsound import playsound
 
 # remove duplicated stream handler to avoid duplicated logging
 logging.getLogger().removeHandler(logging.getLogger().handlers[0])
@@ -45,7 +56,7 @@ def run(
         yolo_weights=WEIGHTS / 'yolov5m.pt',  # model.pt path(s),
         strong_sort_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt',  # model.pt path,
         config_strongsort=ROOT / 'strong_sort/configs/strong_sort.yaml',
-        imgsz=(640, 640),  # inference size (height, width)
+        imgsz=(480, 640),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
@@ -72,11 +83,42 @@ def run(
         dnn=False,  # use OpenCV DNN for ONNX inference
 ):
 
+    def speak_tools(output_candidate):
+        for id, label, distance, direction in output_candidate:
+            if id not in id_list:
+                id_list.append(id)
+                time_list.append(time.time())
+                # tts = gTTS(text=label + " " + str(distance)[:3] + "미터 거리에 있어요", lang='ko')
+                # tts = gTTS(text=korean_agri_name[names[c]] + direction +"시 방향"+ str(distance)[:3] + "미터 거리에 있어요", lang='ko')
+                play_mp3('./mp3_dir/' + names[c] + str(direction) + str(distance)[0]+ '.mp3')
+                # tts.save('./')
+                # print("mp3 changed..")
+                # with ThreadPoolExecutor(max_workers=1) as executor:
+                #     executor.submit(play_mp3, './mp3_dir/' + names[c] + str(direction) + str(distance)[0]+ '.mp4')
+
+    def play_mp3(path):
+        try:
+            playsound(path, block=True)
+        except:
+            print("No mp3 file..!")
+
+    def delete_id(id_list, id, wait_time):
+        time.sleep(wait_time)
+        id_list.remove(id)
+
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (VID_FORMATS)
     is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
     webcam = source.isnumeric() or source.endswith('.txt') or (is_url and not is_file)
+
+    id_list = deque()
+    time_list = deque()
+    
+    output_candidate = []
+    with open('speak_info.yaml') as f:
+        korean_agri_name = yaml.load(f, Loader=yaml.FullLoader)
+
     if is_url and is_file:
         source = check_file(source)  # download
 
@@ -137,6 +179,10 @@ def run(
     curr_frames, prev_frames = [None] * nr_sources, [None] * nr_sources
     for frame_idx, (path, im, im0s, vid_cap, s, depth_frame) in enumerate(dataset):
         t1 = time_sync()
+
+        # easyocr
+        print(reader.readtext(np.transpose(np.squeeze(im.copy()), axes=(1,2,0))[160:480,:,:], detail=0))
+
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
         im /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -209,7 +255,7 @@ def run(
                     for j, (output, conf) in enumerate(zip(outputs[i], confs)):
     
                         bboxes = output[0:4]
-                        id = output[4]
+                        id = output[4]      # float
                         cls = output[5]
 
                         if save_txt:
@@ -228,7 +274,13 @@ def run(
                             id = int(id)  # integer id
                             label = None if hide_labels else (f'{id} {names[c]}' if hide_conf else \
                                 (f'{id} {conf:.2f}' if hide_class else f'{id} {names[c]} {conf:.2f}'))
-                            annotator.box_label(bboxes, label, depth_frame, color=colors(c, True))
+                            distance, direction = annotator.box_label(bboxes, label, depth_frame, color=colors(c, True))
+                            # print(names[c])
+                            output_candidate.append([id, names[c], distance, direction])
+                                
+                            # if id not in id_list:
+                            #     id_list.append()
+                            #     output_candidate.append([label, distance])
                             if save_crop:
                                 txt_file_name = txt_file_name if (isinstance(path, list) and len(path) > 1) else ''
                                 save_one_box(bboxes, imc, file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg', BGR=True)
@@ -243,6 +295,20 @@ def run(
             im0 = annotator.result()
             if show_vid:
                 cv2.imshow(str(p), im0)
+                speak_tools(output_candidate)
+                output_candidate = []
+                # print(id_list)
+                if time_list and time.time() - time_list[0] > 20:
+                    id_list.popleft()
+                    time_list.popleft()
+                
+                # if time.time() - id_list[0][1] > 10:
+                #     id_list.popleft()
+                # for _, saved_time in id_list:
+                #     if time.time() - saved_time > 10:
+                #         id_list.popleft()
+                
+                print(id_list, time_list)
                 cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
@@ -272,14 +338,13 @@ def run(
     if update:
         strip_optimizer(yolo_weights)  # update model (to fix SourceChangeWarning)
 
-
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--yolo-weights', nargs='+', type=str, default=WEIGHTS / 'yolov5m.pt', help='model.pt path(s)')
     parser.add_argument('--strong-sort-weights', type=str, default=WEIGHTS / 'osnet_x0_25_msmt17.pt')
     parser.add_argument('--config-strongsort', type=str, default='strong_sort/configs/strong_sort.yaml')
     parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')  
-    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
+    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[480, 640], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.5, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
