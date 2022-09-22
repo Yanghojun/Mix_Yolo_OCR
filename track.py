@@ -13,6 +13,7 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import sys
+import hojun_utils
 import torchvision
 import numpy as np
 from pathlib import Path
@@ -191,7 +192,16 @@ def run(
 
         # easyocr
         # print(f"im.shape: {im.shape} \n np.squeeze(im.copy()).shape: {np.squeeze(im.copy()).shape} \n np.transpose(np.squeeze(im.copy()).axes=(1, 2, 0)): {np.transpose(np.squeeze(im.copy()), axes=(1,2,0))[160:480,:,:].shape}")
-        print(reader.readtext(np.transpose(np.squeeze(im.copy()), axes=(1,2,0))[160:480,:,:], detail=0))    # width, height, channel
+        
+        hojun_utils.play_my_sweet_voice(reader.readtext(
+            np.transpose(
+                np.squeeze(
+                    im.copy()
+                    ), 
+                axes=(1,2,0))
+            [160:480,:,:], 
+            detail=0)) # width, height, channel
+        
 
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
